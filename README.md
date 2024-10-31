@@ -54,4 +54,4 @@ The script `classify.py` classifies given data and outputs a label (category) fo
 
 Example use
 
-    python classify.py trained_model data/test_no_categories.jsonl.jsonl
+    python classify.py trained_model data/test_no_categories.jsonl
