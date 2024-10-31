@@ -31,7 +31,7 @@ First you need to train the model with our data, which is done with `train.py` s
 
 Example use
 
-    python train.py data/train.jsonl data/test.jsonl train_hyperparameters.yaml
+    python train.py data/train.jsonl -vdp data/dev.jsonl -hv train_hyperparameters.yaml
 
 This script prints out path to saved model as an output.
 
@@ -54,4 +54,4 @@ The script `classify.py` classifies given data and outputs a label (category) fo
 
 Example use
 
-    python classify.py trained_model data/test.jsonl
+    python classify.py trained_model data/test_no_categories.jsonl.jsonl

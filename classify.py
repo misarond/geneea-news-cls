@@ -16,6 +16,8 @@ def main(model_path: Path, input_data: Path) -> None:
     tokenizer = DistilBertTokenizer.from_pretrained(model_path)
     model = DistilBertForSequenceClassification.from_pretrained(model_path)
     df, _ = predict_categories(model, tokenizer, df, model_path)
+    # Change column name to category
+    df = df.rename(columns={'predicted_category': 'category'})
     df.to_json(input_data, lines=True, orient='records')
     print('Data successfully labeled and saved in ', input_data)
 
