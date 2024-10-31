@@ -11,6 +11,13 @@ from utils import load_jsonl_data, predict_categories
 
 
 def plot_conf_matrix(conf_mat: np.ndarray, le: LabelEncoder) -> None:
+    """
+    Plot the confusion matrix using seaborn heatmap.
+
+    Args:
+        conf_mat (np.ndarray): Confusion matrix to be plotted.
+        le (LabelEncoder): LabelEncoder used to transform the categories.
+    """
     plt.figure(figsize=(20, 16))
     sns.heatmap(conf_mat, annot=True, fmt='d', cmap='Blues', xticklabels=le.classes_, yticklabels=le.classes_)
     plt.xlabel('Predicted')
@@ -20,6 +27,13 @@ def plot_conf_matrix(conf_mat: np.ndarray, le: LabelEncoder) -> None:
 
 
 def main(model_path: Path, input_data: Path) -> None:
+    """
+    Main function to load data, predict categories, and evaluate the model.
+
+    Args:
+        model_path (Path): Path to the pre-trained model and tokenizer.
+        input_data (Path): Path to the input data in JSONL format.
+    """
     df = load_jsonl_data(input_data)
     tokenizer = DistilBertTokenizer.from_pretrained(model_path)
     model = DistilBertForSequenceClassification.from_pretrained(model_path)
@@ -49,9 +63,9 @@ def main(model_path: Path, input_data: Path) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('model', type=Path)
-    parser.add_argument('data', type=Path)
+    parser = argparse.ArgumentParser(description="Script for evaluating a trained DistilBERT model on a dataset.")
+    parser.add_argument('model', type=Path, help="Path to the pre-trained model and tokenizer.")
+    parser.add_argument('data', type=Path, help="Path to the input data in JSONL format.")
     args = parser.parse_args()
 
     main(args.model, args.data)

@@ -12,6 +12,20 @@ def predict_categories(model: PreTrainedModel,
                        df: pd.DataFrame,
                        model_path: Path,
                        include_logits: bool = False) -> (pd.DataFrame, LabelEncoder):
+    """
+    Predict categories for the given text inputs using a pre-trained model.
+
+    Args:
+        model (PreTrainedModel): Pre-trained model to use for predictions.
+        tokenizer (PreTrainedTokenizer): Tokenizer associated with the pre-trained model.
+        df (pd.DataFrame): DataFrame containing the text inputs.
+        model_path (Path): Path to the directory containing the model and label encoder classes.
+        include_logits (bool, optional): Whether to include logits in the output DataFrame. Defaults to False.
+
+    Returns:
+        pd.DataFrame: DataFrame with predicted categories (and logits if include_logits is True).
+        LabelEncoder: LabelEncoder used to transform the categories.
+    """
     le = LabelEncoder()
     le.classes_ = np.load(model_path / 'classes.npy', allow_pickle=True)
     predicted_category = []
@@ -34,6 +48,14 @@ def predict_categories(model: PreTrainedModel,
 
 
 def load_jsonl_data(path: Path) -> pd.DataFrame:
+    """
+    Load data from a JSONL file into a DataFrame.
+
+    Args:
+        path (Path): Path to the JSONL file.
+
+    Returns: pd.DataFrame: DataFrame containing the loaded data.
+    """
     df = pd.read_json(path, lines=True)
     df['text_input'] = df['headline'] + '\n' + df['short_description']
     return df
