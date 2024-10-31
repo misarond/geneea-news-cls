@@ -5,9 +5,6 @@ import torch
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from argparse import ArgumentParser
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
-import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 import warnings
@@ -45,17 +42,18 @@ def prepare_dataset(dataset, tokenizer):
 
 
 def train_model(model, train_dataset, val_dataset, tokenizer, hyperparameters):
+    eval_strategy = 'epoch' if val_dataset else None
     # Load hyperparameter values if they were provided
     if hyperparameters:
         with open(hyperparameters, 'r') as f:
             params = yaml.safe_load(f)
         # Training Arguments
-        training_args = TrainingArguments(output_dir='./results', evaluation_strategy="epoch", **params)
+        training_args = TrainingArguments(output_dir='./results', evaluation_strategy=eval_strategy, **params)
     else:
         # Training Arguments
         training_args = TrainingArguments(
             output_dir='./results',
-            evaluation_strategy="epoch",
+            evaluation_strategy=eval_strategy,
             learning_rate=5e-5,
             per_device_train_batch_size=16,
             per_device_eval_batch_size=64,
@@ -101,16 +99,16 @@ def main(train_data: Path, val_data: Path, hyperparameters: Path) -> None:
 
     # Load datasets
     df_train = load_jsonl_data(train_data)
-    df_val = load_jsonl_data(val_data) if val_data else None
+    df_val = None if not val_data else load_jsonl_data(val_data)
 
     train_dataset, le = preprocess_data(df_train)
-    val_dataset, _ = preprocess_data(df_val) if val_data else None
+    val_dataset, _ = (None, None) if not val_data else preprocess_data(df_val)
 
     # Tokenizer
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
     train_dataset = prepare_dataset(train_dataset, tokenizer)
-    val_dataset = prepare_dataset(val_dataset, tokenizer) if val_data else None
+    val_dataset = None if not val_data else prepare_dataset(val_dataset, tokenizer)
 
     # Model
     num_classes = len(le.classes_)
@@ -119,28 +117,8 @@ def main(train_data: Path, val_data: Path, hyperparameters: Path) -> None:
 
     trainer = train_model(model, train_dataset, val_dataset, tokenizer, hyperparameters)
 
-    # Evaluate the model
-    trainer.evaluate()
-
     trainer.save_model("./trained_model")
     np.save('trained_model/classes.npy', le.classes_)
-
-    # Predict labels for validation dataset
-    predictions, labels, _ = trainer.predict(val_dataset)
-
-    # Get predicted class labels
-    predicted_labels = torch.argmax(torch.tensor(predictions), dim=-1)
-
-    # Compute confusion matrix
-    conf_mat = confusion_matrix(labels, predicted_labels)
-
-    # Plot confusion matrix
-    plt.figure(figsize=(20, 16))
-    sns.heatmap(conf_mat, annot=True, fmt='d', cmap='Blues', xticklabels=le.classes_, yticklabels=le.classes_)
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.title('Confusion Matrix')
-    plt.show()
 
 
 if __name__ == '__main__':
