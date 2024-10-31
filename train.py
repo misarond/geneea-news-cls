@@ -4,7 +4,7 @@ from evaluate import load
 import torch
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from argparse import ArgumentParser
+import argparse
 import numpy as np
 from pathlib import Path
 import warnings
@@ -117,12 +117,15 @@ def main(train_data: Path, val_data: Path, hyperparameters: Path) -> None:
 
     trainer = train_model(model, train_dataset, val_dataset, tokenizer, hyperparameters)
 
-    trainer.save_model("./trained_model")
-    np.save('trained_model/classes.npy', le.classes_)
+    output_path = './trained_model'
+    trainer.save_model(output_path)
+    output_path = Path(output_path)
+    np.save(output_path / 'classes.npy', le.classes_)
+    print('Model successfully saved in ', output_path)
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("train_data_path", type=Path)
     parser.add_argument("-vdp", "--validation_data_path", default=None, type=Path)

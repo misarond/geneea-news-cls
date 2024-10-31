@@ -10,6 +10,7 @@ def main(model_path: Path, input_data: Path) -> None:
     model = DistilBertForSequenceClassification.from_pretrained(model_path)
     df, _ = predict_categories(model, tokenizer, df, model_path)
     df.to_json(input_data, lines=True, orient='records')
+    print('Data successfully labeled and saved in ', input_data)
 
 
 if __name__ == '__main__':
