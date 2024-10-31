@@ -1,43 +1,16 @@
 import argparse
+import numpy as np
 import pandas as pd
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from sklearn.preprocessing import LabelEncoder
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support, top_k_accuracy_score
 import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
-import torch
 from pathlib import Path
+from utils import load_jsonl_data, predict_categories
 
 
-def load_jsonl_data(path: str) -> pd.DataFrame:
-    df = pd.read_json(path, lines=True)
-    df['text_input'] = df['headline'] + '\n' + df['short_description']
-    return df
-
-
-def predict_categories(model, tokenizer, df, model_path):
-    le = LabelEncoder()
-    le.classes_ = np.load(model_path / 'classes.npy', allow_pickle=True)
-    predicted_category = []
-    texts = df['text_input'].tolist()
-    output_logits = None
-    model.eval()
-    with torch.no_grad():
-        for text in texts:
-            logits = model(**tokenizer(text, return_tensors='pt')).logits
-            if output_logits is None:
-                output_logits = logits
-            else:
-                output_logits = torch.cat((output_logits, logits), dim=0)
-            predicted_category.append(le.classes_[(torch.argmax(logits, dim=-1))])
-    df['predicted_category'] = predicted_category
-    output_logits = [el.tolist() for el in output_logits.numpy()]
-    df['logits'] = output_logits
-    return df, le
-
-
-def plot_conf_matrix(conf_mat, le):
+def plot_conf_matrix(conf_mat: np.ndarray, le: LabelEncoder) -> None:
     plt.figure(figsize=(20, 16))
     sns.heatmap(conf_mat, annot=True, fmt='d', cmap='Blues', xticklabels=le.classes_, yticklabels=le.classes_)
     plt.xlabel('Predicted')
@@ -46,17 +19,18 @@ def plot_conf_matrix(conf_mat, le):
     plt.show()
 
 
-def main(model_path, input_data):
+def main(model_path: Path, input_data: Path) -> None:
     df = load_jsonl_data(input_data)
     tokenizer = DistilBertTokenizer.from_pretrained(model_path)
     model = DistilBertForSequenceClassification.from_pretrained(model_path)
-    df, le = predict_categories(model, tokenizer, df, model_path)
+    df, le = predict_categories(model, tokenizer, df, model_path, include_logits=True)
 
     # Compute confusion matrix
     y_true = df['category'].tolist()
     y_pred = df['predicted_category'].tolist()
     conf_mat = confusion_matrix(y_true, y_pred)
 
+    # Use logits to compute top-k accuracy
     y_true_idx = le.transform(y_true)
     y_pred_logits = df['logits'].tolist()
     top_5_acc = top_k_accuracy_score(y_true_idx, y_pred_logits, k=5)
@@ -65,8 +39,8 @@ def main(model_path, input_data):
     print('Top 1 accuracy: ', top_1_acc)
     print('Top 5 accuracy: ', top_5_acc)
 
+    # Print precision, recall, f_score for each class
     precision, recall, f_score, _ = precision_recall_fscore_support(y_true, y_pred, zero_division=0.0)
-
     results_df = pd.DataFrame({'Category': le.classes_, 'Precision': precision, 'Recall': recall, 'F-score': f_score})
     print(results_df.to_markdown(index=False))
 
